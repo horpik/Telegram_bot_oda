@@ -49,11 +49,13 @@ async def cm_start(message: types.Message):
     await bot.send_message(message.from_user.id, f"Начнём сначала {TEXT_HAIRSTYLE}", reply_markup=main_choice_hairstyle)
 
 
-async def open_inline_choice_hairstyle(call: CallbackQuery):
+async def open_inline_choice_hairstyle(call: CallbackQuery, state: FSMContext):
     await call.answer(cache_time=60)
     await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_choice_hairstyle)
     await call.message.delete()
     await FMSDownload.main_state.set()
+    async with state.proxy() as data:
+        data['can_send_photo'] = False
 
 
 async def cancel_choice_add_service(call: CallbackQuery, state: FSMContext):
@@ -64,8 +66,6 @@ async def cancel_choice_add_service(call: CallbackQuery, state: FSMContext):
             TEXT_START_PROGRAM,
             reply_markup=main_action)
         await state.finish()
-    elif callback_data.split(':')[1] == "cancel_add_finished_works":
-        await call.message.answer(TEXT_HAIRSTYLE, reply_markup=finished_works_choice)
     elif callback_data.split(':')[1] == "cancel_add_type_work":
         await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_choice_hairstyle)
     await call.message.delete()
@@ -76,7 +76,9 @@ async def cancel_choice_add_docs(call: CallbackQuery, state: FSMContext):
     callback_data = call.data
     if callback_data.split(':')[1] == "cancel_add_docs":
         await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_choice_hairstyle)
-        await FMSDownload.previous()
+    elif callback_data.split(':')[1] == "cancel_add_finished_works":
+        await call.message.answer(TEXT_HAIRSTYLE, reply_markup=finished_works_choice)
+    await FMSDownload.previous()
     await call.message.delete()
 
 
@@ -310,8 +312,9 @@ def register_handlers_docs(dp: Dispatcher):
                                            action_name=["continue_add_photo", "cancel_add_photo", "allow_add_photo"]))
     dp.register_callback_query_handler(cancel_choice_add_service,
                                        action_callback.filter(
-                                           action_name=["cancel_choice_hairstyle", "cancel_add_finished_works", "cancel_add_type_work"]),
+                                           action_name=["cancel_choice_hairstyle", "cancel_add_type_work"]),
                                        state=FMSDownload.main_state)
     dp.register_callback_query_handler(cancel_choice_add_docs,
-                                       action_callback.filter(action_name=["cancel_add_docs"]),
+                                       action_callback.filter(
+                                           action_name=["cancel_add_docs", "cancel_add_finished_works"]),
                                        state=FMSDownload.download)
