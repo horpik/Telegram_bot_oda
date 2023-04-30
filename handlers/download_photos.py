@@ -108,11 +108,14 @@ async def forward_photo(message: types.Message, state: FSMContext):
         thread_id = data['thread_id']
         description = data['description']
         can_send_photo = data['can_send_photo']
-    if not can_send_photo:
-        await message.answer('Вам запрещено присылать фотографии в обычном формате.\n'
-                             'Укажите разрешение и попробуйте снова')
-    else:
-        await bot.send_photo(os.getenv('GROUP_ID'), photo=photo, message_thread_id=thread_id, caption=description)
+    try:
+        if not can_send_photo:
+            await message.answer('Вам запрещенно присылать фотографии в сжатом режиме.\n'
+                                 'Выдайте разрешение и попробуйте снова.')
+        else:
+            await bot.send_photo(os.getenv('GROUP_ID'), photo=photo, message_thread_id=thread_id, caption=description)
+    except:
+        await bot.send_message(message.from_user.id, "Слишком много фотографий загруженно сразу!")
 
 
 async def choice_add_simple_hairstyle(call: CallbackQuery, state: FSMContext):
@@ -129,8 +132,8 @@ async def choice_add_simple_hairstyle(call: CallbackQuery, state: FSMContext):
         data['thread_id'] = thread_id
         data['description'] = description
 
-    await call.message.answer(f"Вы хотите добавить {name_hairstyle}\n"
-                              f"Добавьте файлы или нажмите кнопку назад",
+    await call.message.answer(f"Вы хотите добавить <b>{name_hairstyle}</b>\n"
+                              f"Добавьте файлы, а затем нажмите кнопку назад.",
                               reply_markup=cancel_add_docs)
     await call.message.delete()
     await FMSDownload.next()
@@ -150,15 +153,14 @@ async def download_finished_works(call: CallbackQuery, state: FSMContext):
     global dict_service
     callback_data = call.data
     key_for_dict = callback_data.split(':')[1][7::]
-    description = str(dict_service.get(key_for_dict))
-    description = "#готово_" + description
+    description = '#готово_' + dict_service[key_for_dict][0]
     thread_id = 5
     async with state.proxy() as data:
         data['thread_id'] = thread_id
         data['description'] = description
-    await call.message.answer(f"Вы хотите добавить готовую работу\n"
-                              f"Добавьте файлы или нажмите кнопку назад",
-                              reply_markup=cancel_add_finished_works)
+    await call.message.answer(f"Вы хотите добавить готовую работу по услуге <b>{dict_service[key_for_dict][0]}</b>.\n"
+                              f"Добавьте файлы и нажмите кнопку назад.",
+                              reply_markup=cancel_add_finished_works, parse_mode="html")
     await call.message.delete()
     await FMSDownload.next()
 
@@ -168,7 +170,7 @@ async def allow_add_photo(call: CallbackQuery, state: FSMContext):
     await call.answer(cache_time=60)
     callback_data = call.data
     if callback_data.split(':')[1] == "allow_add_photo":
-        await call.message.answer("Вы хотите разрешить присылать фотографии в обычном, не сжатом формате?",
+        await call.message.answer("Вы действительно хотите уметь присылать сжатые фотографии?",
                                   reply_markup=repeated_choice)
         await call.message.delete()
     elif callback_data.split(':')[1] == "continue_add_photo":
