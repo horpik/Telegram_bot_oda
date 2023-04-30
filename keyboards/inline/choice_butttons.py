@@ -8,6 +8,11 @@ main_action = InlineKeyboardMarkup(
             InlineKeyboardButton(text="Добавить новые фотографии", callback_data=action_callback.new(
                 action_name="choice_hairstyle"
             ))
+        ],
+        [
+            InlineKeyboardButton(text="Разрешить добавлять обычные фото", callback_data=action_callback.new(
+                action_name="allow_add_photo"
+            ))
         ]
     ]
 )
@@ -45,11 +50,6 @@ main_choice_hairstyle = InlineKeyboardMarkup(
             )),
             InlineKeyboardButton(text="Boost Up", callback_data=hairstyle_callback.new(
                 item_name="boost_up"
-            ))
-        ],
-        [
-            InlineKeyboardButton(text="Разрешить добавлять обычные фото", callback_data=action_callback.new(
-                action_name="allow_add_photo"
             ))
         ],
         [
@@ -91,7 +91,7 @@ coloring_choice = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton(text="Назад", callback_data=action_callback.new(
-                action_name="cancel_add_docs"
+                action_name="cancel_add_type_work"
             ))
         ]
     ]
@@ -108,7 +108,7 @@ care_choice = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton(text="Назад", callback_data=action_callback.new(
-                action_name="cancel_add_docs"
+                action_name="cancel_add_type_work"
             ))
         ]
     ]
@@ -126,7 +126,7 @@ hairstyle_styling_choice = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton(text="Назад", callback_data=action_callback.new(
-                action_name="cancel_add_docs"
+                action_name="cancel_add_type_work"
             ))
         ]
     ]
@@ -151,16 +151,7 @@ other_choice = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton(text="Назад", callback_data=action_callback.new(
-                action_name="cancel_add_docs"
-            ))
-        ]
-    ]
-)
-cancel_choice = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="Назад", callback_data=action_callback.new(
-                action_name="cancel_add_docs"
+                action_name="cancel_add_type_work"
             ))
         ]
     ]
@@ -259,9 +250,29 @@ finished_works_choice = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton(text="Назад", callback_data=action_callback.new(
-                action_name="cancel_add_docs"
+                action_name="cancel_add_type_work"
             ))
         ]
 
+    ]
+)
+
+cancel_add_docs = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Назад", callback_data=action_callback.new(
+                action_name="cancel_add_docs"
+            ))
+        ]
+    ]
+)
+
+cancel_add_finished_works = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Назад", callback_data=action_callback.new(
+                action_name="cancel_add_finished_works"
+            ))
+        ]
     ]
 )

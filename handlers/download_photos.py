@@ -3,40 +3,43 @@ import os
 from aiogram import types, Dispatcher
 from aiogram.dispatcher.filters import Text
 from aiogram.types import CallbackQuery
+from aiogram.dispatcher.filters.state import StatesGroup, State
+from aiogram.dispatcher import FSMContext
 
-from create_bot import bot
 from handlers.main_commands import TEXT_START_PROGRAM
-from keyboards import main_choice_hairstyle, repeated_choice, main_action, hairstyle_callback, cancel_choice, \
-    action_callback, other_choice, coloring_choice, hairstyle_styling_choice, care_choice, finished_works_choice
-
-thread_id = 0
-can_send_photo = False
-description = "кто-то криво скинул файлы)))"
+from create_bot import bot
+from keyboards import main_choice_hairstyle, main_action, hairstyle_callback, cancel_add_docs, \
+    action_callback, other_choice, coloring_choice, repeated_choice, hairstyle_styling_choice, care_choice, \
+    finished_works_choice, cancel_add_finished_works
 
 TEXT_HAIRSTYLE = "Выбери тип фотографии, которую будешь добавлять"
 
-
 dict_service = {
-    'men': '#мужская',
-    'women': '#женская',
-    'children': '#детская',
-    'boost_up': '#boost_up',
-    'interior': '#интерьер',
-    'tools': '#инструменты',
+    'men': 'мужская',
+    'women': 'женская',
+    'children': 'детская',
+    'boost_up': 'boost_up',
+    'interior': 'интерьер',
+    'tools': 'инструменты',
     'care_products': 'средства_ухода',
-    'other_other': '#другое',
-    'hairstyle': '#причёска',
-    'styling': '#укладка',
-    'molecular': '#восстановление',
-    'cold_botox': '#холодный_ботокс',
-    'one_color': '#один_цвет',
-    'flushing_black': '#смывка_с_чёрного',
-    'highlighting': '#мелирование',
-    'ombre': '#омбре',
-    'shatush': '#шатуш',
-    'air_touch': '#air_touch',
+    'other_other': 'другое',
+    'hairstyle': 'причёска',
+    'styling': 'укладка',
+    'molecular': 'восстановление',
+    'cold_botox': 'холодный_ботокс',
+    'one_color': 'один_цвет',
+    'flushing_black': 'смывка_с_чёрного',
+    'highlighting': 'мелирование',
+    'ombre': 'омбре',
+    'shatush': 'шатуш',
+    'air_touch': 'air_touch',
     'balayage': 'балаяж'
 }
+
+
+class FMSDownload(StatesGroup):
+    main_state = State()
+    download = State()
 
 
 async def cm_start(message: types.Message):
@@ -46,106 +49,110 @@ async def cm_start(message: types.Message):
     await bot.send_message(message.from_user.id, f"Начнём сначала {TEXT_HAIRSTYLE}", reply_markup=main_choice_hairstyle)
 
 
-async def forward_docs(message: types.Message):
-    global description
-    file = message.document
-    try:
-        await bot.send_document(os.getenv('GROUP_ID'), document=file.file_id, message_thread_id=thread_id,
-                                caption=description)
-    finally:
-        print("Что-то не так")
-
-
-async def forward_photo(message: types.Message):
-    global can_send_photo
-    global description
-
-    photo = str(message.photo).split('"')[3]
-    if not can_send_photo:
-        await message.answer('Вам запрещено присылать фотографии в обычном формате.\n'
-                             'Укажите разрешение и попробуйте снова')
-    else:
-        try:
-            await bot.send_photo(os.getenv('GROUP_ID'), photo=photo, message_thread_id=thread_id, caption=description)
-        finally:
-            print("Что-то не так")
-
-
-async def allow_add_photo(call: CallbackQuery):
-    global can_send_photo
-    global TEXT_HAIRSTYLE
-
+async def open_inline_choice_hairstyle(call: CallbackQuery):
     await call.answer(cache_time=60)
-    callback_data = call.data
-    if callback_data.split(':')[1] == "allow_add_photo":
-        await call.message.answer("Вы хотите разрешить присылать фотографии в обычном, не сжатом формате?",
-                                  reply_markup=repeated_choice)
-        await call.message.delete()
-    elif callback_data.split(':')[1] == "continue_add_photo":
-        can_send_photo = True
-        await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_choice_hairstyle)
-        await call.message.delete()
-    elif callback_data.split(':')[1] == "cancel_add_photo":
-        can_send_photo = False
-        await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_choice_hairstyle)
-        await call.message.delete()
+    await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_choice_hairstyle)
+    await call.message.delete()
+    await FMSDownload.main_state.set()
 
 
-async def cancel_diff_choice(call: CallbackQuery):
-    global TEXT_HAIRSTYLE
-
+async def cancel_choice_add_service(call: CallbackQuery, state: FSMContext):
     await call.answer(cache_time=60)
     callback_data = call.data
     if callback_data.split(':')[1] == "cancel_choice_hairstyle":
         await call.message.answer(
             TEXT_START_PROGRAM,
             reply_markup=main_action)
-    elif callback_data.split(':')[1] == "cancel_add_docs":
+        await state.finish()
+    elif callback_data.split(':')[1] == "cancel_add_finished_works":
+        await call.message.answer(TEXT_HAIRSTYLE, reply_markup=finished_works_choice)
+    elif callback_data.split(':')[1] == "cancel_add_type_work":
         await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_choice_hairstyle)
     await call.message.delete()
 
 
-async def choice_add_simple_hairstyle(call: CallbackQuery):
-    global thread_id
-    global description
-    global dict_service
-
+async def cancel_choice_add_docs(call: CallbackQuery, state: FSMContext):
     await call.answer(cache_time=60)
     callback_data = call.data
+    if callback_data.split(':')[1] == "cancel_add_docs":
+        await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_choice_hairstyle)
+        await FMSDownload.previous()
+    await call.message.delete()
+
+
+async def forward_docs(message: types.Message, state: FSMContext):
+    file = message.document
+    async with state.proxy() as data:
+        thread_id = data['thread_id']
+        description = data['description']
+    try:
+        await bot.send_document(os.getenv('GROUP_ID'), document=file.file_id, message_thread_id=thread_id,
+                                caption=description)
+    except:
+        await bot.send_message(message.from_user.id, "Слишком много фотографий загруженно сразу!")
+
+
+async def forward_photo(message: types.Message, state: FSMContext):
+    photo = message.photo[0].file_id
+    async with state.proxy() as data:
+        thread_id = data['thread_id']
+        description = data['description']
+        can_send_photo = data['can_send_photo']
+    if not can_send_photo:
+        await message.answer('Вам запрещено присылать фотографии в обычном формате.\n'
+                             'Укажите разрешение и попробуйте снова')
+    else:
+        await bot.send_photo(os.getenv('GROUP_ID'), photo=photo, message_thread_id=thread_id, caption=description)
+
+
+async def choice_add_simple_hairstyle(call: CallbackQuery, state: FSMContext):
+    global dict_service
+    await call.answer(cache_time=60)
+
+    thread_id = 0
+    description = '#'
+    callback_data = call.data
     name_hairstyle = ""
+
     if callback_data.split(':')[1] == 'men':
         name_hairstyle = "мужскую стрижку"
-        description = dict_service['men']
+        description += dict_service['men']
         thread_id = 2
     elif callback_data.split(':')[1] == 'women':
         name_hairstyle = "женскую стрижку"
-        description = dict_service['women']
+        description += dict_service['women']
         thread_id = 3
     elif callback_data.split(':')[1] == 'children':
         name_hairstyle = "детскую стрижку"
-        description = dict_service['children']
+        description += dict_service['children']
         thread_id = 4
     elif callback_data.split(':')[1] == 'finished_works':
-        name_hairstyle = "готовую работу"
         thread_id = 5
+        async with state.proxy() as data:
+            data['thread_id'] = thread_id
         await call.message.answer(f"Выберите тип готовой фотографии",
                                   reply_markup=finished_works_choice)
         await call.message.delete()
         return
     elif callback_data.split(':')[1] == 'boost_up':
         name_hairstyle = "boost up"
-        description = dict_service['boost_up']
+        description += dict_service['boost_up']
         thread_id = 201
+
+    async with state.proxy() as data:
+        data['thread_id'] = thread_id
+        data['description'] = description
+
     await call.message.answer(f"Вы хотите добавить {name_hairstyle}\n"
                               f"Добавьте файлы или нажмите кнопку назад",
-                              reply_markup=cancel_choice)
+                              reply_markup=cancel_add_docs)
     await call.message.delete()
+    await FMSDownload.next()
 
 
-async def choice_add_hard_hairstyle(call: CallbackQuery):
-    global thread_id
-    global description
+async def choice_add_hard_hairstyle(call: CallbackQuery, state: FSMContext):
     global dict_service
+    description = '#'
     name_hairstyle = ""
     await call.answer(cache_time=60)
     callback_data = call.data
@@ -153,93 +160,133 @@ async def choice_add_hard_hairstyle(call: CallbackQuery):
         await call.message.answer("Какое именно окрашивание вы хотите добавить?", reply_markup=coloring_choice)
         await call.message.delete()
         thread_id = 66
+        async with state.proxy() as data:
+            data['thread_id'] = thread_id
         return
     elif callback_data.split(':')[1] == "hairstyle_styling":
         await call.message.answer("Что именно, причёску или укладку вы хотите добавить?",
                                   reply_markup=hairstyle_styling_choice)
         await call.message.delete()
         thread_id = 62
+        async with state.proxy() as data:
+            data['thread_id'] = thread_id
         return
     elif callback_data.split(':')[1] == "other":
         await call.message.answer("Что именно вы хотите добавить?", reply_markup=other_choice)
         await call.message.delete()
         thread_id = 254
+        async with state.proxy() as data:
+            data['thread_id'] = thread_id
         return
     elif callback_data.split(':')[1] == "care":
         await call.message.answer("Какой именно уход мы выбираем?", reply_markup=care_choice)
         await call.message.delete()
         thread_id = 306
+        async with state.proxy() as data:
+            data['thread_id'] = thread_id
         return
     elif callback_data.split(':')[1] == "interior":
         name_hairstyle = "предмет интерьера"
-        description = dict_service['interior']
+        description += dict_service['interior']
     elif callback_data.split(':')[1] == "tools":
         name_hairstyle = "инструменты"
-        description = dict_service['tools']
+        description += dict_service['tools']
     elif callback_data.split(':')[1] == "care_products":
         name_hairstyle = "средства для ухода"
-        description = dict_service['care_products']
+        description += dict_service['care_products']
     elif callback_data.split(':')[1] == "other_other":
         name_hairstyle = "что-то, для чего мы не смогли придумать название"
-        description = dict_service['other_other']
+        description += dict_service['other_other']
     elif callback_data.split(':')[1] == "hairstyle":
         name_hairstyle = "причёску"
-        description = dict_service['hairstyle']
+        description += dict_service['hairstyle']
     elif callback_data.split(':')[1] == "styling":
         name_hairstyle = "укладку"
-        description = dict_service['styling']
+        description += dict_service['styling']
     elif callback_data.split(':')[1] == "molecular":
         name_hairstyle = "молекулярное восстановление волос"
-        description = dict_service['molecular']
+        description += dict_service['molecular']
     elif callback_data.split(':')[1] == "cold_botox":
         name_hairstyle = "Холодный ботокс"
-        description = dict_service['cold_botox']
+        description += dict_service['cold_botox']
     elif callback_data.split(':')[1] == "one_color":
         name_hairstyle = "окрашивание в один цвет"
-        description = dict_service['one_color']
+        description += dict_service['one_color']
     elif callback_data.split(':')[1] == "flushing_black":
         name_hairstyle = "смывку с чёрного"
-        description = dict_service['flushing_black']
+        description += dict_service['flushing_black']
     elif callback_data.split(':')[1] == "highlighting":
         name_hairstyle = "мелирование"
-        description = dict_service['highlighting']
+        description += dict_service['highlighting']
     elif callback_data.split(':')[1] == "ombre":
         name_hairstyle = "омбре"
-        description = dict_service['ombre']
+        description += dict_service['ombre']
     elif callback_data.split(':')[1] == "shatush":
         name_hairstyle = "шатуш"
-        description = dict_service['shatush']
+        description += dict_service['shatush']
     elif callback_data.split(':')[1] == "air_touch":
         name_hairstyle = "Air Touch"
-        description = dict_service['air_touch']
+        description += dict_service['air_touch']
     elif callback_data.split(':')[1] == "balayage":
         name_hairstyle = "балаяж"
-        description = dict_service['balayage']
+        description += dict_service['balayage']
+
+    async with state.proxy() as data:
+        data['description'] = description
+
     await call.message.answer(f"Вы хотите добавить {name_hairstyle}\n"
                               f"Добавьте файлы или нажмите кнопку назад",
-                              reply_markup=cancel_choice)
+                              reply_markup=cancel_add_docs)
     await call.message.delete()
+    await FMSDownload.next()
 
 
-async def download_finished_works(call: CallbackQuery):
-    global thread_id
-    global description
+async def download_finished_works(call: CallbackQuery, state: FSMContext):
     global dict_service
-
     callback_data = call.data
-    key_for_dict = callback_data.split("_")[1]
-    description = dict_service.get(key_for_dict)
+    key_for_dict = callback_data.split(':')[1][7::]
+    description = str(dict_service.get(key_for_dict))
     description = "#готово_" + description
     thread_id = 5
+    async with state.proxy() as data:
+        data['thread_id'] = thread_id
+        data['description'] = description
+    await call.message.answer(f"Вы хотите добавить готовую работу\n"
+                              f"Добавьте файлы или нажмите кнопку назад",
+                              reply_markup=cancel_add_finished_works)
+    await call.message.delete()
+    await FMSDownload.next()
+
+
+async def allow_add_photo(call: CallbackQuery, state: FSMContext):
+    global TEXT_HAIRSTYLE
+    await call.answer(cache_time=60)
+    callback_data = call.data
+    if callback_data.split(':')[1] == "allow_add_photo":
+        await call.message.answer("Вы хотите разрешить присылать фотографии в обычном, не сжатом формате?",
+                                  reply_markup=repeated_choice)
+        await call.message.delete()
+    elif callback_data.split(':')[1] == "continue_add_photo":
+        await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_action)
+        await call.message.delete()
+        async with state.proxy() as data:
+            data['can_send_photo'] = True
+    elif callback_data.split(':')[1] == "cancel_add_photo":
+        await call.message.answer(TEXT_HAIRSTYLE, reply_markup=main_action)
+        await call.message.delete()
+        async with state.proxy() as data:
+            data['can_send_photo'] = False
 
 
 def register_handlers_docs(dp: Dispatcher):
     dp.register_message_handler(cm_start, Text(equals="Добавление работы в базу", ignore_case=True))
-    dp.register_message_handler(forward_docs, content_types=['document'])
-    dp.register_message_handler(forward_photo, content_types=['photo'])
+    dp.register_message_handler(forward_docs, content_types=['document'], state=FMSDownload.download)
+    dp.register_message_handler(forward_photo, content_types=['photo'], state=FMSDownload.download)
+    dp.register_callback_query_handler(open_inline_choice_hairstyle, text_contains="choice_hairstyle")
     dp.register_callback_query_handler(choice_add_simple_hairstyle,
                                        hairstyle_callback.filter(
-                                           item_name=["men", "finished_works", "boost_up", "children", "women"]))
+                                           item_name=["men", "finished_works", "boost_up", "children", "women"]),
+                                       state=FMSDownload.main_state)
     dp.register_callback_query_handler(download_finished_works,
                                        hairstyle_callback.filter(
                                            item_name=["finish_men", "finish_boost_up", "finish_children",
@@ -249,16 +296,22 @@ def register_handlers_docs(dp: Dispatcher):
                                                       "finish_air_touch", "finish_balayage", "finish_molecular",
                                                       "finish_cold_botox", "finish_hairstyle",
                                                       "finish_styling", "finish_interior", "finish_tools",
-                                                      "finish_care_products", "finish_other_other"]))
+                                                      "finish_care_products", "finish_other_other"]),
+                                       state=FMSDownload.main_state)
     dp.register_callback_query_handler(choice_add_hard_hairstyle,
                                        hairstyle_callback.filter(
                                            item_name=["hairstyle_styling", "other", "coloring", "care",
                                                       "one_color", "flushing_black", "ombre", "highlighting", "shatush",
                                                       "air_touch", "balayage", "molecular", "cold_botox", "hairstyle",
-                                                      "styling", "interior", "tools", "care_products", "other_other"]))
-    dp.register_callback_query_handler(cancel_diff_choice,
-                                       action_callback.filter(
-                                           action_name=["cancel_add_docs", "cancel_choice_hairstyle"]))
+                                                      "styling", "interior", "tools", "care_products", "other_other"]),
+                                       state=FMSDownload.main_state)
     dp.register_callback_query_handler(allow_add_photo,
                                        action_callback.filter(
                                            action_name=["continue_add_photo", "cancel_add_photo", "allow_add_photo"]))
+    dp.register_callback_query_handler(cancel_choice_add_service,
+                                       action_callback.filter(
+                                           action_name=["cancel_choice_hairstyle", "cancel_add_finished_works", "cancel_add_type_work"]),
+                                       state=FMSDownload.main_state)
+    dp.register_callback_query_handler(cancel_choice_add_docs,
+                                       action_callback.filter(action_name=["cancel_add_docs"]),
+                                       state=FMSDownload.download)
