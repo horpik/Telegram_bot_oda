@@ -15,25 +15,33 @@ from keyboards import main_choice_hairstyle, main_action, hairstyle_callback, ca
 TEXT_HAIRSTYLE = "Выбери тип фотографии, которую будешь добавлять"
 
 dict_service = {
-    'men': 'мужская',
-    'women': 'женская',
-    'children': 'детская',
-    'boost_up': 'boost_up',
-    'interior': 'интерьер',
-    'tools': 'инструменты',
-    'care_products': 'средства_ухода',
-    'other_other': 'другое',
-    'hairstyle': 'причёска',
-    'styling': 'укладка',
-    'molecular': 'восстановление',
-    'cold_botox': 'холодный_ботокс',
-    'one_color': 'один_цвет',
-    'flushing_black': 'смывка_с_чёрного',
-    'highlighting': 'мелирование',
-    'ombre': 'омбре',
-    'shatush': 'шатуш',
-    'air_touch': 'air_touch',
-    'balayage': 'балаяж'
+    'men': ['мужская', 2, 'мужскую стрижку'],
+    'women': ['женская', 3, 'женскую стрижку'],
+    'children': ['детская', 4, 'детскую стрижку'],
+    'boost_up': ['boost_up', 201, 'boost up'],
+    'interior': ['интерьер', 254, 'предмет интерьера'],
+    'tools': ['инструменты', 254, 'инструменты'],
+    'care_products': ['средства_ухода', 254, 'средства для ухода'],
+    'other_other': ['другое', 254, 'что-то, для чего мы не смогли придумать название'],
+    'hairstyle': ['причёска', 62, 'причёску'],
+    'styling': ['укладка', 62, 'укладку'],
+    'molecular': ['восстановление', 306, 'молекулярное восстановление волос'],
+    'cold_botox': ['холодный_ботокс', 306, 'холодный ботокс'],
+    'one_color': ['один_цвет', 66, 'окрашивание в один цвет'],
+    'flushing_black': ['смывка_с_чёрного', 66, 'смывку с чёрного'],
+    'highlighting': ['мелирование', 66, 'мелирование'],
+    'ombre': ['омбре', 66, 'омбре'],
+    'shatush': ['шатуш', 66, 'шатуш'],
+    'air_touch': ['air_touch', 66, 'Air Touch'],
+    'balayage': ['балаяж', 66, 'балаяж']
+}
+
+dict_complex_service = {
+    'finished_works': ['Выберите тип готовой фотографии', finished_works_choice],
+    'coloring': ['Какое именно окрашивание вы хотите добавить?', coloring_choice],
+    'hairstyle_styling': ['Что именно, причёску или укладку вы хотите добавить?', hairstyle_styling_choice],
+    'other': ['Что именно вы хотите добавить?', other_choice],
+    'care': ['Какой именно уход мы выбираем?', care_choice]
 }
 
 
@@ -109,37 +117,13 @@ async def forward_photo(message: types.Message, state: FSMContext):
 
 async def choice_add_simple_hairstyle(call: CallbackQuery, state: FSMContext):
     global dict_service
+
     await call.answer(cache_time=60)
 
-    thread_id = 0
-    description = '#'
     callback_data = call.data
-    name_hairstyle = ""
-
-    if callback_data.split(':')[1] == 'men':
-        name_hairstyle = "мужскую стрижку"
-        description += dict_service['men']
-        thread_id = 2
-    elif callback_data.split(':')[1] == 'women':
-        name_hairstyle = "женскую стрижку"
-        description += dict_service['women']
-        thread_id = 3
-    elif callback_data.split(':')[1] == 'children':
-        name_hairstyle = "детскую стрижку"
-        description += dict_service['children']
-        thread_id = 4
-    elif callback_data.split(':')[1] == 'finished_works':
-        thread_id = 5
-        async with state.proxy() as data:
-            data['thread_id'] = thread_id
-        await call.message.answer(f"Выберите тип готовой фотографии",
-                                  reply_markup=finished_works_choice)
-        await call.message.delete()
-        return
-    elif callback_data.split(':')[1] == 'boost_up':
-        name_hairstyle = "boost up"
-        description += dict_service['boost_up']
-        thread_id = 201
+    name_hairstyle = dict_service[callback_data.split(':')[1]][2]
+    thread_id = dict_service[callback_data.split(':')[1]][1]
+    description = '#' + dict_service[callback_data.split(':')[1]][0]
 
     async with state.proxy() as data:
         data['thread_id'] = thread_id
@@ -153,94 +137,13 @@ async def choice_add_simple_hairstyle(call: CallbackQuery, state: FSMContext):
 
 
 async def choice_add_hard_hairstyle(call: CallbackQuery, state: FSMContext):
-    global dict_service
-    description = '#'
-    name_hairstyle = ""
+    global dict_complex_service
+
     await call.answer(cache_time=60)
     callback_data = call.data
-    if callback_data.split(':')[1] == "coloring":
-        await call.message.answer("Какое именно окрашивание вы хотите добавить?", reply_markup=coloring_choice)
-        await call.message.delete()
-        thread_id = 66
-        async with state.proxy() as data:
-            data['thread_id'] = thread_id
-        return
-    elif callback_data.split(':')[1] == "hairstyle_styling":
-        await call.message.answer("Что именно, причёску или укладку вы хотите добавить?",
-                                  reply_markup=hairstyle_styling_choice)
-        await call.message.delete()
-        thread_id = 62
-        async with state.proxy() as data:
-            data['thread_id'] = thread_id
-        return
-    elif callback_data.split(':')[1] == "other":
-        await call.message.answer("Что именно вы хотите добавить?", reply_markup=other_choice)
-        await call.message.delete()
-        thread_id = 254
-        async with state.proxy() as data:
-            data['thread_id'] = thread_id
-        return
-    elif callback_data.split(':')[1] == "care":
-        await call.message.answer("Какой именно уход мы выбираем?", reply_markup=care_choice)
-        await call.message.delete()
-        thread_id = 306
-        async with state.proxy() as data:
-            data['thread_id'] = thread_id
-        return
-    elif callback_data.split(':')[1] == "interior":
-        name_hairstyle = "предмет интерьера"
-        description += dict_service['interior']
-    elif callback_data.split(':')[1] == "tools":
-        name_hairstyle = "инструменты"
-        description += dict_service['tools']
-    elif callback_data.split(':')[1] == "care_products":
-        name_hairstyle = "средства для ухода"
-        description += dict_service['care_products']
-    elif callback_data.split(':')[1] == "other_other":
-        name_hairstyle = "что-то, для чего мы не смогли придумать название"
-        description += dict_service['other_other']
-    elif callback_data.split(':')[1] == "hairstyle":
-        name_hairstyle = "причёску"
-        description += dict_service['hairstyle']
-    elif callback_data.split(':')[1] == "styling":
-        name_hairstyle = "укладку"
-        description += dict_service['styling']
-    elif callback_data.split(':')[1] == "molecular":
-        name_hairstyle = "молекулярное восстановление волос"
-        description += dict_service['molecular']
-    elif callback_data.split(':')[1] == "cold_botox":
-        name_hairstyle = "Холодный ботокс"
-        description += dict_service['cold_botox']
-    elif callback_data.split(':')[1] == "one_color":
-        name_hairstyle = "окрашивание в один цвет"
-        description += dict_service['one_color']
-    elif callback_data.split(':')[1] == "flushing_black":
-        name_hairstyle = "смывку с чёрного"
-        description += dict_service['flushing_black']
-    elif callback_data.split(':')[1] == "highlighting":
-        name_hairstyle = "мелирование"
-        description += dict_service['highlighting']
-    elif callback_data.split(':')[1] == "ombre":
-        name_hairstyle = "омбре"
-        description += dict_service['ombre']
-    elif callback_data.split(':')[1] == "shatush":
-        name_hairstyle = "шатуш"
-        description += dict_service['shatush']
-    elif callback_data.split(':')[1] == "air_touch":
-        name_hairstyle = "Air Touch"
-        description += dict_service['air_touch']
-    elif callback_data.split(':')[1] == "balayage":
-        name_hairstyle = "балаяж"
-        description += dict_service['balayage']
-
-    async with state.proxy() as data:
-        data['description'] = description
-
-    await call.message.answer(f"Вы хотите добавить {name_hairstyle}\n"
-                              f"Добавьте файлы или нажмите кнопку назад",
-                              reply_markup=cancel_add_docs)
+    await call.message.answer(dict_complex_service[callback_data.split(':')[1]][0],
+                              reply_markup=dict_complex_service[callback_data.split(':')[1]][1])
     await call.message.delete()
-    await FMSDownload.next()
 
 
 async def download_finished_works(call: CallbackQuery, state: FSMContext):
@@ -287,7 +190,10 @@ def register_handlers_docs(dp: Dispatcher):
     dp.register_callback_query_handler(open_inline_choice_hairstyle, text_contains="choice_hairstyle")
     dp.register_callback_query_handler(choice_add_simple_hairstyle,
                                        hairstyle_callback.filter(
-                                           item_name=["men", "finished_works", "boost_up", "children", "women"]),
+                                           item_name=["men", "boost_up", "children", "women",
+                                                      "one_color", "flushing_black", "ombre", "highlighting", "shatush",
+                                                      "air_touch", "balayage", "molecular", "cold_botox", "hairstyle",
+                                                      "styling", "interior", "tools", "care_products", "other_other"]),
                                        state=FMSDownload.main_state)
     dp.register_callback_query_handler(download_finished_works,
                                        hairstyle_callback.filter(
@@ -303,9 +209,7 @@ def register_handlers_docs(dp: Dispatcher):
     dp.register_callback_query_handler(choice_add_hard_hairstyle,
                                        hairstyle_callback.filter(
                                            item_name=["hairstyle_styling", "other", "coloring", "care",
-                                                      "one_color", "flushing_black", "ombre", "highlighting", "shatush",
-                                                      "air_touch", "balayage", "molecular", "cold_botox", "hairstyle",
-                                                      "styling", "interior", "tools", "care_products", "other_other"]),
+                                                      "finished_works"]),
                                        state=FMSDownload.main_state)
     dp.register_callback_query_handler(allow_add_photo,
                                        action_callback.filter(
