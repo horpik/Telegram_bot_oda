@@ -13,7 +13,6 @@ user_list = os.getenv('USER_ID').replace(' ', '').split(',')
 
 
 async def command_start(message: types.Message):
-    global TEXT_START_PROGRAM
     if str(message.chat.id) == os.getenv('GROUP_ID') or str(message.from_user.id) in user_list:
         await bot.send_message(message.from_user.id,
                                'Приветик! Я очень рад, что ты используешь меня!\n')
@@ -27,7 +26,6 @@ async def command_start(message: types.Message):
 
 
 async def main_start(message: types.Message):
-    global TEXT_START_PROGRAM
     if message.chat.id == os.getenv('GROUP_ID'):
         await message.delete()
         await bot.send_message(message.from_user.id,

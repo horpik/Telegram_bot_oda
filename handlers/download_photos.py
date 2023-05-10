@@ -51,8 +51,6 @@ class FMSDownload(StatesGroup):
 
 
 async def cm_start(message: types.Message):
-    global TEXT_HAIRSTYLE
-
     await message.delete()
     await bot.send_message(message.from_user.id, f"Начнём сначала {TEXT_HAIRSTYLE}", reply_markup=main_choice_hairstyle)
 
@@ -119,8 +117,6 @@ async def forward_photo(message: types.Message, state: FSMContext):
 
 
 async def choice_add_simple_hairstyle(call: CallbackQuery, state: FSMContext):
-    global dict_service
-
     await call.answer(cache_time=60)
 
     callback_data = call.data
@@ -140,8 +136,6 @@ async def choice_add_simple_hairstyle(call: CallbackQuery, state: FSMContext):
 
 
 async def choice_add_hard_hairstyle(call: CallbackQuery, state: FSMContext):
-    global dict_complex_service
-
     await call.answer(cache_time=60)
     callback_data = call.data
     await call.message.answer(dict_complex_service[callback_data.split(':')[1]][0],
@@ -150,7 +144,6 @@ async def choice_add_hard_hairstyle(call: CallbackQuery, state: FSMContext):
 
 
 async def download_finished_works(call: CallbackQuery, state: FSMContext):
-    global dict_service
     callback_data = call.data
     key_for_dict = callback_data.split(':')[1][7::]
     description = '#готово_' + dict_service[key_for_dict][0]
@@ -166,7 +159,6 @@ async def download_finished_works(call: CallbackQuery, state: FSMContext):
 
 
 async def allow_add_photo(call: CallbackQuery, state: FSMContext):
-    global TEXT_HAIRSTYLE
     await call.answer(cache_time=60)
     callback_data = call.data
     if callback_data.split(':')[1] == "allow_add_photo":
